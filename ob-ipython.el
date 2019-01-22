@@ -1,4 +1,4 @@
-;;; ob-ipython.el --- org-babel functions for IPython evaluation
+;;; ob-ipython.el --- org-babel functions for IPython evaluation    -*- lexical-binding: t; -*-
 
 ;; Author: Greg Sexton <gregsexton@gmail.com>
 ;; Keywords: literate programming, reproducible research
@@ -556,7 +556,8 @@ The elements of the list have the form (\"kernel\" \"language\")."
     (unless (and (boundp header-args) (symbol-value header-args))
       (set (intern (concat "org-babel-default-header-args:" jupyter-lang))
            `((:session . ,language)
-             (:kernel . ,kernel))))
+             (:kernel . ,kernel)
+	     (:language . ,language))))
     (defalias (intern (concat "org-babel-execute:" jupyter-lang))
       'org-babel-execute:ipython)
     (defalias (intern (concat "org-babel-" jupyter-lang "-initiate-session"))
@@ -608,12 +609,14 @@ This function is called by `org-babel-execute-src-block'."
          (session (cdr (assoc :session params)))
          (result-type (cdr (assoc :result-type params)))
          (result-params (cdr (assoc :result-params params)))
-         (sentinel (ipython--async-gen-sentinel)))
-    (ob-ipython--create-kernel (ob-ipython--normalize-session session)
-                               (cdr (assoc :kernel params)))
+         (sentinel (ipython--async-gen-sentinel))
+	 (kernel (cdr (assoc :kernel params)))
+	 (language (cdr (assoc :language params))))
+    (ob-ipython--create-kernel (ob-ipython--normalize-session session) kernel)
     (ob-ipython--execute-request-async
      (org-babel-expand-body:generic (encode-coding-string body 'utf-8)
-                                    params (org-babel-variable-assignments:python params))
+                                    params
+				    (funcall (ob-ipython-babel-variable-assignments language) params))
      (ob-ipython--normalize-session session)
      (lambda (ret sentinel buffer file result-type result-params)
        (unless (member "silent" result-params)
@@ -625,15 +628,20 @@ This function is called by `org-babel-execute-src-block'."
 (defun ob-ipython--execute-sync (body params)
   (let* ((file (cdr (assoc :ipyfile params)))
          (session (cdr (assoc :session params)))
-         (result-type (cdr (assoc :result-type params))))
-    (ob-ipython--create-kernel (ob-ipython--normalize-session session)
-                               (cdr (assoc :kernel params)))
+         (result-type (cdr (assoc :result-type params)))
+	 (kernel (cdr (assoc :kernel params)))
+	 (language (cdr (assoc :language params))))
+    (ob-ipython--create-kernel (ob-ipython--normalize-session session) kernel)
     (-when-let (ret (ob-ipython--eval
                      (ob-ipython--execute-request
                       (org-babel-expand-body:generic (encode-coding-string body 'utf-8)
-                                                     params (org-babel-variable-assignments:python params))
+                                                     params
+						     (funcall (ob-ipython-babel-variable-assignments language) params))
                       (ob-ipython--normalize-session session))))
       (ob-ipython--process-response ret file result-type))))
+
+(defmacro ob-ipython-babel-variable-assignments (arg)
+  `(intern (concat "org-babel-variable-assignments:" ,arg)))
 
 (defun ob-ipython--process-response (ret file result-type)
   (let ((result (cdr (assoc :result ret)))
