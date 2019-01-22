@@ -34,6 +34,7 @@
 ;;; Code:
 
 (require 'ob)
+(require 'org-id)
 (require 'ob-python)
 (require 'dash)
 (require 'dash-functional)
@@ -714,29 +715,7 @@ Make sure your src block has a :session param.")
 
 ;; async
 
-(defun ipython--async-gen-sentinel ()
-  ;; lifted directly from org-id. thanks.
-  (let ((rnd (md5 (format "%s%s%s%s%s%s%s"
-                          (random)
-                          (current-time)
-                          (user-uid)
-                          (emacs-pid)
-                          (user-full-name)
-                          user-mail-address
-                          (recent-keys)))))
-    (format "%s-%s-4%s-%s%s-%s"
-            (substring rnd 0 8)
-            (substring rnd 8 12)
-            (substring rnd 13 16)
-            (format "%x"
-                    (logior
-                     #b10000000
-                     (logand
-                      #b10111111
-                      (string-to-number
-                       (substring rnd 16 18) 16))))
-            (substring rnd 18 20)
-            (substring rnd 20 32))))
+(defalias 'ipython--async-gen-sentinel 'org-id-uuid)
 
 (defun ipython--async-replace-sentinel (sentinel buffer replacement)
   (save-window-excursion
@@ -751,8 +730,6 @@ Make sure your src block has a :session param.")
            replacement
            (cdr (assoc :result-params (nth 2 (org-babel-get-src-block-info)))))
           (org-redisplay-inline-images))))))
-
-;; lib
 
 (provide 'ob-ipython)
 
