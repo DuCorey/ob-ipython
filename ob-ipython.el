@@ -686,7 +686,7 @@ This function is called by `org-babel-execute-src-block'."
                           (s-join "\n  ")
                           (s-concat "  ")
                           (format "#+BEGIN_EXAMPLE\n%s\n#+END_EXAMPLE"))
-                   (s-concat ": " (car lines)))))))
+		   value)))))
     (or (-when-let (val (cdr (assoc 'text/org values))) (funcall org val))
         (-when-let (val (cdr (assoc 'image/png values))) (funcall png val))
         (-when-let (val (cdr (assoc 'image/svg+xml values))) (funcall svg val))
