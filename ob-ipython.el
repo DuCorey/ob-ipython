@@ -70,6 +70,10 @@ can be displayed."
   "When non-nil decorate results with execution count metadata."
   :group 'ob-ipython)
 
+(defcustom ob-ipython-output-example nil
+  "When non-nil wrap multiline results in a BEGIN_EXAMPLE org block."
+  :group 'ob-ipython)
+
 ;; utils
 
 (defun ob-ipython--write-string-to-file (file string)
@@ -680,7 +684,7 @@ This function is called by `org-babel-execute-src-block'."
                 ))
         (txt (lambda (value)
                (let ((lines (s-lines value)))
-                 (if (cdr lines)
+                 (if (and (cdr lines) ob-ipython-output-example)
                      (->> lines
                           (-map 's-trim-right)
                           (s-join "\n  ")
